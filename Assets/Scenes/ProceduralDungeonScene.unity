@@ -408,15 +408,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   x: 0
   y: 0
-  initialHeight: 200
-  initialWidth: 200
-  speed: 0.1
-  minArea: 50
-  minWidth: 10
-  minHeight: 10
-  seed: 0
-  randomizeSeed: 1
+  initialHeight: 1000
+  initialWidth: 1000
+  minArea: 4000
+  minWidth: 40
+  minHeight: 40
+  speed: 0.01
+  seed: 77757
+  randomizeSeed: 0
   roomCount: 0
+  showRooms: 1
+  finishedRoomCount: 0
 --- !u!4 &645204197
 Transform:
   m_ObjectHideFlags: 0
@@ -426,7 +428,7 @@ Transform:
   m_GameObject: {fileID: 645204195}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 19.761871, y: -14.087318, z: 5.9691467}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

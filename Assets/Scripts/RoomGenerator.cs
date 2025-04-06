@@ -8,31 +8,40 @@ using Random = UnityEngine.Random;
 
 public class RoomGenerator : MonoBehaviour
 {
+    //initial conditions
     public int x,y;
     public int initialHeight, initialWidth;
+	public int minArea = 5000;
+	public int minWidth = 50;
+	public int minHeight = 50;
 
-    public float speed = 0.1f;
-    public int minArea = 5000;
-    public int minWidth = 50;
-    public int minHeight = 50;
+	//operational parameters
+	public float speed = 0.1f;
 
+    //RNJesus
     public int seed = 00000;
     public bool randomizeSeed;
     private int splitNum, splitMod, sizeInc, sizeMod, sizeNum;
 
-    private int arraySize = 50;
-    private RectInt[] rooms;
+    //General Array stuff
+	private int arraySize = 50;
+
+	//Room generation array
+	private RectInt[] rooms;
 	public int roomCount = 1;
     public bool showRooms = true;
 
-
+    //Rooms Set Aside
+    private RectInt[] finishedRooms;
+    public int finishedRoomCount = 0;
 
 
 
 	private void Start()
     {
-        roomCount = 1;
+        roomCount = 1; finishedRoomCount = 0;
         rooms = new RectInt[arraySize];
+        finishedRooms = new RectInt[arraySize];
 
 
         rooms[0] = new(x, y, initialWidth, initialHeight);
@@ -44,7 +53,7 @@ public class RoomGenerator : MonoBehaviour
         
         sizeNum = seed / 10000 % 10;
         sizeMod = seed / 1000 % 10; if (sizeMod <= 1) sizeMod = 2; 
-        sizeInc = seed / 100 % 10;
+        sizeInc = seed / 100 % 10; if (sizeInc == sizeMod) sizeInc++;
 
         splitNum = seed / 10 % 10;
         splitMod = seed % 10; if (splitMod <= 2) splitMod = 3;
@@ -62,9 +71,12 @@ public class RoomGenerator : MonoBehaviour
 		{
 			for (int i = 0; i < roomCount; i++)
 			{
-				AlgorithmsUtils.DebugRectInt(rooms[i], Color.blue, 0.1f);
+				AlgorithmsUtils.DebugRectInt(rooms[i], Color.blue, 0.01f);
 			}
-
+            for (int i = 0;i < finishedRoomCount; i++)
+            {
+                AlgorithmsUtils.DebugRectInt(finishedRooms[i], Color.green, 0.01f);
+            }
 		}
 
 
@@ -72,10 +84,14 @@ public class RoomGenerator : MonoBehaviour
     }
 
 
-
+            //
+            //Doing Splits
+            //
 
     private int GetSplitRatio()
     {
+        if (sizeNum == sizeMod) sizeNum--;
+
         int result = (sizeNum % sizeMod);
 
         sizeNum += sizeInc;
@@ -98,17 +114,15 @@ public class RoomGenerator : MonoBehaviour
 
         //check that rooms aren't too small
         if ((rooms[roomIndex].width / 10 * splitRatio + 5) * rooms[roomIndex].height < minArea) return;
-		if ((rooms[roomIndex].width / 10 * (10 - splitRatio) + 5) * rooms[roomIndex].height < minArea) return;
+        if ((rooms[roomIndex].width / 10 * (10 - splitRatio) + 5) * rooms[roomIndex].height < minArea) return;
         if (rooms[roomIndex].width / 10 * splitRatio < minWidth || rooms[roomIndex].width / 10 * (10 - splitRatio) < minWidth) return;
-
-        if (((rooms[roomIndex].width / 10 * splitRatio) * rooms[roomIndex].height) % 10 != 0) return;
 
 
 		RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width / 10 * splitRatio + 5, rooms[roomIndex].height);
-        RectInt room2 = SpawnRoom(rooms[roomIndex].x + rooms[roomIndex].width / 10 * splitRatio - 5, rooms[roomIndex].y, rooms[roomIndex].width / 10 * (10 - splitRatio) + 5, rooms[roomIndex].height);
+        RectInt room2 = SpawnRoom(rooms[roomIndex].x + rooms[roomIndex].width / 10 * splitRatio - 5, rooms[roomIndex].y, rooms[roomIndex].width / 10 * (10 - splitRatio) + 10, rooms[roomIndex].height);
 
 
-        RemoveRoomAtIndex(roomIndex);
+        RemoveRoomAtIndex(roomIndex, rooms);
     }
     private void HorizontalSplit(int roomIndex)
 	{
@@ -117,27 +131,57 @@ public class RoomGenerator : MonoBehaviour
 		
         //check that rooms fit the requirements
 		if (rooms[roomIndex].width * (rooms[roomIndex].height / 10 * splitRatio + 5) < minArea) return;
-		if (rooms[roomIndex].width * (rooms[roomIndex].height / 10 * (10 - splitRatio) + 5) < minArea) return;
-		if (rooms[roomIndex].height / 10 * splitRatio < minHeight || rooms[roomIndex].height / 10 * (10 - splitRatio) < minHeight) return;
-
-		if ((rooms[roomIndex].width * (rooms[roomIndex].height / 10 * splitRatio) % 10 != 0)) return;
+        if (rooms[roomIndex].width * (rooms[roomIndex].height / 10 * (10 - splitRatio) + 5) < minArea) return;
+        if (rooms[roomIndex].height / 10 * splitRatio < minHeight || rooms[roomIndex].height / 10 * (10 - splitRatio) < minHeight) return;
 
 
 		RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width, rooms[roomIndex].height / 10 * splitRatio + 5);
-        RectInt room2 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y + rooms[roomIndex].height / 10 * splitRatio - 5, rooms[roomIndex].width, rooms[roomIndex].height / 10 * (10 - splitRatio) + 5);
+        RectInt room2 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y + rooms[roomIndex].height / 10 * splitRatio - 5, rooms[roomIndex].width, rooms[roomIndex].height / 10 * (10 - splitRatio) + 10);
 
 
-		RemoveRoomAtIndex(roomIndex);
+		RemoveRoomAtIndex(roomIndex, rooms);
     }
 
-    private RectInt SpawnRoom(int x, int y, int width, int height)
+	IEnumerator Split(int roomIndex = 0)
+	{
+        //make sure it doesn't go out of bounds
+		if (roomIndex >= roomCount) roomIndex = 0;
+		Debug.Log(roomIndex);
+
+		if (rooms[roomIndex].width * rooms[roomIndex].height / (sizeMod - 1) <= minArea )
+        {
+            SetRoomAside(roomIndex);
+        }
+		else if (ChooseSplit())
+		{
+			VerticalSplit(roomIndex);
+		}
+		else
+		{
+			HorizontalSplit(roomIndex);
+		}
+
+		yield return new WaitForSeconds(speed);
+
+        if (roomCount != 0) StartCoroutine(Split(roomIndex + 1));
+        else Debug.Log("Splitting done");
+
+
+	}
+
+
+	        //
+	        //Array Finangling
+	        //
+
+	private RectInt SpawnRoom(int x, int y, int width, int height)
     {
         //Verify room size, redundant
         //if (width * height <= minArea) return new RectInt(); 
         //if (height < minHeight) return new RectInt();
         //if (width < minWidth) return new RectInt();
 
-        Debug.Log(width *  height);
+        //Debug.Log(width *  height);
 
         RectInt newRoom = new(x, y, width, height);
 
@@ -154,7 +198,7 @@ public class RoomGenerator : MonoBehaviour
         return newRoom;
     }
 
-    private void RemoveRoomAtIndex(int indexToRemove)
+    private void RemoveRoomAtIndex(int indexToRemove, RectInt[] array)
     {
         //Debug.Log(indexToRemove);
         //Check if the index is valid
@@ -164,16 +208,16 @@ public class RoomGenerator : MonoBehaviour
         }
 
 		//Show the rool being deleted
-		AlgorithmsUtils.DebugRectInt(rooms[indexToRemove], Color.red, 1f);
+		AlgorithmsUtils.DebugRectInt(array[indexToRemove], Color.red, 1f);
 
 
 		//Shift all elements to the left starting from the index to remove to the end of the array and decrement the count
 
 		for (int i = indexToRemove + 1; i < roomCount; i++)
         {
-            rooms[i - 1] = rooms[i];
+            array[i - 1] = array[i];
         }
-        rooms[roomCount - 1] = new RectInt();
+        array[roomCount - 1] = new RectInt();
 
         roomCount--;
 
@@ -181,36 +225,50 @@ public class RoomGenerator : MonoBehaviour
 
     private void IncreaseArraySize()
     {
-        RectInt[] tempArray = rooms;
+        RectInt[] tempArray;
         arraySize *= 2;
 
-        rooms = new RectInt[arraySize];
+		//rooms
+		tempArray = rooms;
+		rooms = new RectInt[arraySize];
 
         for (int i = 0; i < tempArray.Length; i++)
         {
             rooms[i] = tempArray[i];
         }
 
-    }
+        //finishedRooms
+        tempArray = finishedRooms;
+        finishedRooms = new RectInt[arraySize];
 
-
-
-
-    IEnumerator Split(int roomIndex = 0)
-	{
-		if (roomIndex >= roomCount) roomIndex = 0;
-
-		if (ChooseSplit()){
-            VerticalSplit(roomIndex);
-        }else{
-            HorizontalSplit(roomIndex);
+		for (int i = 0; i < tempArray.Length; i++)
+		{
+			finishedRooms[i] = tempArray[i];
 		}
-		
-        yield return new WaitForSeconds(speed);
-        //Debug.Log("waited");
-
-        StartCoroutine(Split(roomIndex+1));
 
 	}
 
+
+            //
+            //setting rooms[i] into finishedRooms[]
+            //
+
+    private void SetRoomAside(int roomIndex)
+	{
+        //Debug.Log(roomIndex);
+
+		if (finishedRoomCount == arraySize)
+		{
+			IncreaseArraySize();
+		}
+
+
+		finishedRooms[finishedRoomCount] = new RectInt(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width, rooms[roomIndex].height);
+        finishedRoomCount++;
+
+        RemoveRoomAtIndex(roomIndex, rooms);
+
+
+
+	}
 }
