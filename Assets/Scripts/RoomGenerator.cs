@@ -52,8 +52,8 @@ public class RoomGenerator : MonoBehaviour
         }
         
         sizeNum = seed / 10000 % 10;
-        sizeMod = seed / 1000 % 10; if (sizeMod <= 1) sizeMod = 2; 
-        sizeInc = seed / 100 % 10; if (sizeInc == sizeMod) sizeInc++;
+        sizeMod = seed / 1000 % 10; if (sizeMod <= 1) sizeMod = 3; 
+        sizeInc = seed / 100 % 10; if (sizeInc == sizeMod || sizeInc == 0) sizeInc++;
 
         splitNum = seed / 10 % 10;
         splitMod = seed % 10; if (splitMod <= 2) splitMod = 3;
@@ -90,7 +90,8 @@ public class RoomGenerator : MonoBehaviour
 
     private int GetSplitRatio()
     {
-        if (sizeNum == sizeMod) sizeNum--;
+        if (sizeNum % sizeMod == 0 || sizeNum % sizeMod == 1) sizeMod++;
+        if (sizeMod > 9) sizeMod = 3;
 
         int result = (sizeNum % sizeMod);
 
