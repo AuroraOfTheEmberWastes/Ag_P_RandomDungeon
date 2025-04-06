@@ -411,10 +411,10 @@ MonoBehaviour:
   initialHeight: 1000
   initialWidth: 1000
   minArea: 4000
-  minWidth: 40
-  minHeight: 40
+  minWidth: 50
+  minHeight: 50
   speed: 0.01
-  seed: 10777
+  seed: 70431
   randomizeSeed: 1
   roomCount: 0
   showRooms: 1

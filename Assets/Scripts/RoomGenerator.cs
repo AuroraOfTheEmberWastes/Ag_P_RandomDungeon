@@ -22,6 +22,7 @@ public class RoomGenerator : MonoBehaviour
     public int seed = 00000;
     public bool randomizeSeed;
     private int splitNum, splitMod, sizeInc, sizeMod, sizeNum;
+    private bool stuck = true;
 
     //General Array stuff
 	private int arraySize = 50;
@@ -114,13 +115,14 @@ public class RoomGenerator : MonoBehaviour
 
 
         //check that rooms aren't too small
-        if ((rooms[roomIndex].width / 10 * splitRatio + 5) * rooms[roomIndex].height < minArea) return;
-        if ((rooms[roomIndex].width / 10 * (10 - splitRatio) + 5) * rooms[roomIndex].height < minArea) return;
-        if (rooms[roomIndex].width / 10 * splitRatio < minWidth || rooms[roomIndex].width / 10 * (10 - splitRatio) < minWidth) return;
+        if ((rooms[roomIndex].width / sizeMod * splitRatio + 5) * rooms[roomIndex].height < minArea) return;
+        if ((rooms[roomIndex].width / sizeMod * (sizeMod - splitRatio) + 5) * rooms[roomIndex].height < minArea) return;
+        if (rooms[roomIndex].width / sizeMod * splitRatio < minWidth || rooms[roomIndex].width / sizeMod * (sizeMod - splitRatio) < minWidth) return;
 
+		stuck = false;
 
-		RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width / 10 * splitRatio + 5, rooms[roomIndex].height);
-        RectInt room2 = SpawnRoom(rooms[roomIndex].x + rooms[roomIndex].width / 10 * splitRatio - 5, rooms[roomIndex].y, rooms[roomIndex].width / 10 * (10 - splitRatio) + 10, rooms[roomIndex].height);
+		RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width / sizeMod * splitRatio + 5, rooms[roomIndex].height);
+        RectInt room2 = SpawnRoom(rooms[roomIndex].x + rooms[roomIndex].width / sizeMod * splitRatio - 5, rooms[roomIndex].y, rooms[roomIndex].width / sizeMod * (sizeMod - splitRatio) + 10, rooms[roomIndex].height);
 
 
         RemoveRoomAtIndex(roomIndex, rooms);
@@ -131,13 +133,14 @@ public class RoomGenerator : MonoBehaviour
 
 		
         //check that rooms fit the requirements
-		if (rooms[roomIndex].width * (rooms[roomIndex].height / 10 * splitRatio + 5) < minArea) return;
-        if (rooms[roomIndex].width * (rooms[roomIndex].height / 10 * (10 - splitRatio) + 5) < minArea) return;
-        if (rooms[roomIndex].height / 10 * splitRatio < minHeight || rooms[roomIndex].height / 10 * (10 - splitRatio) < minHeight) return;
+		if (rooms[roomIndex].width * (rooms[roomIndex].height / sizeMod * splitRatio + 5) < minArea) return;
+        if (rooms[roomIndex].width * (rooms[roomIndex].height / sizeMod * (sizeMod - splitRatio) + 5) < minArea) return;
+        if (rooms[roomIndex].height / sizeMod * splitRatio < minHeight || rooms[roomIndex].height / sizeMod * (sizeMod - splitRatio) < minHeight) return;
 
+		stuck = false;
 
-		RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width, rooms[roomIndex].height / 10 * splitRatio + 5);
-        RectInt room2 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y + rooms[roomIndex].height / 10 * splitRatio - 5, rooms[roomIndex].width, rooms[roomIndex].height / 10 * (10 - splitRatio) + 10);
+		RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width, rooms[roomIndex].height / sizeMod * splitRatio + 5);
+        RectInt room2 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y + rooms[roomIndex].height / sizeMod * splitRatio - 5, rooms[roomIndex].width, rooms[roomIndex].height / sizeMod * (sizeMod - splitRatio) + 10);
 
 
 		RemoveRoomAtIndex(roomIndex, rooms);
@@ -146,10 +149,15 @@ public class RoomGenerator : MonoBehaviour
 	IEnumerator Split(int roomIndex = 0)
 	{
         //make sure it doesn't go out of bounds
-		if (roomIndex >= roomCount) roomIndex = 0;
-		Debug.Log(roomIndex);
+        if (roomIndex >= roomCount)
+		{
+            if (stuck == true) sizeMod++;
+			roomIndex = 0; 
+            stuck = true;
+		}
+		Debug.Log(stuck);
 
-		if (rooms[roomIndex].width * rooms[roomIndex].height / (sizeMod - 1) <= minArea )
+		if (rooms[roomIndex].width * rooms[roomIndex].height  <=2 * sizeMod * minArea )
         {
             SetRoomAside(roomIndex);
         }
