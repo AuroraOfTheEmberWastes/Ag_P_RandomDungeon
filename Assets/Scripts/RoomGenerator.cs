@@ -22,7 +22,7 @@ public class RoomGenerator : MonoBehaviour
     public int seed = 00000;
     public bool randomizeSeed;
     private int splitNum, splitMod, sizeInc, sizeMod, sizeNum;
-    private bool stuck = true;
+    private bool stuck = false;
 
     //General Array stuff
 	private int arraySize = 50;
@@ -53,7 +53,7 @@ public class RoomGenerator : MonoBehaviour
         }
         
         sizeNum = seed / 10000 % 10;
-        sizeMod = seed / 1000 % 10; if (sizeMod <= 1) sizeMod = 3; 
+        sizeMod = seed / 1000 % 10; sizeMod++; if (sizeMod > minWidth) sizeMod = minWidth; if (sizeMod > minHeight) sizeMod = minHeight;
         sizeInc = seed / 100 % 10; if (sizeInc == sizeMod || sizeInc == 0) sizeInc++;
 
         splitNum = seed / 10 % 10;
@@ -89,16 +89,20 @@ public class RoomGenerator : MonoBehaviour
             //Doing Splits
             //
 
-    private int GetSplitRatio()
+    private int GetSplitDifference()
     {
-        if (sizeNum % sizeMod == 0 || sizeNum % sizeMod == 1) sizeMod++;
-        if (sizeMod > 9) sizeMod = 3;
+        //if (sizeNum % sizeMod == 0 || sizeNum % sizeMod == 1) sizeMod++;
+        //if (sizeMod > 9) sizeMod = 3;
 
         int result = (sizeNum % sizeMod);
 
         sizeNum += sizeInc;
+        sizeNum -= (sizeNum / sizeMod) * sizeMod;
 
-        return result;
+
+		Debug.Log(result);
+
+		return result;
     }
 
     private bool ChooseSplit()
@@ -111,53 +115,73 @@ public class RoomGenerator : MonoBehaviour
     }
     private void VerticalSplit(int roomIndex)
     {
-        int splitRatio = GetSplitRatio();
+        int splitDifference = GetSplitDifference();
 
-
-        //check that rooms aren't too small
-        if ((rooms[roomIndex].width / sizeMod * splitRatio + 5) * rooms[roomIndex].height < minArea) return;
-        if ((rooms[roomIndex].width / sizeMod * (sizeMod - splitRatio) + 5) * rooms[roomIndex].height < minArea) return;
-        if (rooms[roomIndex].width / sizeMod * splitRatio < minWidth || rooms[roomIndex].width / sizeMod * (sizeMod - splitRatio) < minWidth) return;
+		//check that rooms aren't too small
+		if ((rooms[roomIndex].width / 2 + splitDifference) * rooms[roomIndex].height < minArea) return;
+		if ((rooms[roomIndex].width / 2 - splitDifference) * rooms[roomIndex].height < minArea) return;
+        if (rooms[roomIndex].width / 2 + splitDifference + 2 < minWidth) return;
+        if (rooms[roomIndex].width / 2 - splitDifference - 2 < minWidth) return;
 
 		stuck = false;
 
-		RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width / sizeMod * splitRatio + 5, rooms[roomIndex].height);
-        RectInt room2 = SpawnRoom(rooms[roomIndex].x + rooms[roomIndex].width / sizeMod * splitRatio - 5, rooms[roomIndex].y, rooms[roomIndex].width / sizeMod * (sizeMod - splitRatio) + 10, rooms[roomIndex].height);
+        if (rooms[roomIndex].width % 2 == 1)
+		{
+			RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width / 2 + splitDifference, rooms[roomIndex].height);
+			RectInt room2 = SpawnRoom(rooms[roomIndex].x + rooms[roomIndex].width / 2 + splitDifference - 1, rooms[roomIndex].y, rooms[roomIndex].width / 2 - splitDifference + 2, rooms[roomIndex].height);
+		}else
+        {
+			RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width / 2 + splitDifference, rooms[roomIndex].height);
+			RectInt room2 = SpawnRoom(rooms[roomIndex].x + rooms[roomIndex].width / 2 + splitDifference - 1, rooms[roomIndex].y, rooms[roomIndex].width / 2 - splitDifference + 1, rooms[roomIndex].height);
+		}
+
+
 
 
         RemoveRoomAtIndex(roomIndex, rooms);
     }
     private void HorizontalSplit(int roomIndex)
 	{
-		int splitRatio = GetSplitRatio();
+		int splitDifference = GetSplitDifference();
+        
 
-		
-        //check that rooms fit the requirements
-		if (rooms[roomIndex].width * (rooms[roomIndex].height / sizeMod * splitRatio + 5) < minArea) return;
-        if (rooms[roomIndex].width * (rooms[roomIndex].height / sizeMod * (sizeMod - splitRatio) + 5) < minArea) return;
-        if (rooms[roomIndex].height / sizeMod * splitRatio < minHeight || rooms[roomIndex].height / sizeMod * (sizeMod - splitRatio) < minHeight) return;
+        //check that rooms aren't too small
+		if (rooms[roomIndex].width * (rooms[roomIndex].height / 2 + splitDifference) < minArea) return;
+        if (rooms[roomIndex].width * (rooms[roomIndex].height / 2 - splitDifference) < minArea) return;
+        if (rooms[roomIndex].height / 2 + splitDifference + 2 < minHeight) return;
+		if (rooms[roomIndex].height / 2 - splitDifference - 2 < minHeight) return;
+
 
 		stuck = false;
+        if (rooms[roomIndex].height % 2 == 1)
+		{
+			RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width, rooms[roomIndex].height / 2 + splitDifference);
+			RectInt room2 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y + rooms[roomIndex].height / 2 + splitDifference - 1, rooms[roomIndex].width, rooms[roomIndex].height / 2 - splitDifference + 2);
+		}else
+		{
+			RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width, rooms[roomIndex].height / 2 + splitDifference);
+			RectInt room2 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y + rooms[roomIndex].height / 2 + splitDifference - 1, rooms[roomIndex].width, rooms[roomIndex].height / 2 - splitDifference + 1);
+		}
 
-		RectInt room1 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width, rooms[roomIndex].height / sizeMod * splitRatio + 5);
-        RectInt room2 = SpawnRoom(rooms[roomIndex].x, rooms[roomIndex].y + rooms[roomIndex].height / sizeMod * splitRatio - 5, rooms[roomIndex].width, rooms[roomIndex].height / sizeMod * (sizeMod - splitRatio) + 10);
 
-
-		RemoveRoomAtIndex(roomIndex, rooms);
+            RemoveRoomAtIndex(roomIndex, rooms);
     }
 
 	IEnumerator Split(int roomIndex = 0)
 	{
-        //make sure it doesn't go out of bounds
-        if (roomIndex >= roomCount)
+
+		Debug.Log(roomIndex + " " + roomCount);
+
+		//make sure it doesn't go out of bounds
+		if (roomIndex >= roomCount)
 		{
-            if (stuck == true) sizeMod++;
+            //if (stuck) SetRoomAside(0);
 			roomIndex = 0; 
             stuck = true;
 		}
-		Debug.Log(stuck);
+		//Debug.Log(stuck);
 
-		if (rooms[roomIndex].width * rooms[roomIndex].height  <=2 * sizeMod * minArea )
+		if (rooms[roomIndex].width * rooms[roomIndex].height  <= 2 * minArea)
         {
             SetRoomAside(roomIndex);
         }
@@ -169,6 +193,11 @@ public class RoomGenerator : MonoBehaviour
 		{
 			HorizontalSplit(roomIndex);
 		}
+
+        if (stuck)
+        {
+            SetRoomAside(roomIndex);
+        }
 
 		yield return new WaitForSeconds(speed);
 
