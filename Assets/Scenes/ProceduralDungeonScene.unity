@@ -205,8 +205,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalRotation: {x: -0.6129617, y: 0.003237288, z: -0.002511346, w: -0.790102}
+  m_LocalPosition: {x: 20.809162, y: 43.480206, z: 7.994674}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -408,17 +408,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   x: 0
   y: 0
-  initialHeight: 40
-  initialWidth: 40
-  minArea: 20
-  minWidth: 4
-  minHeight: 4
-  speed: 1
-  seed: 97996
+  initialHeight: 50
+  initialWidth: 50
+  minArea: 30
+  minWidth: 5
+  minHeight: 5
+  speed: 0
+  seed: 1946086883
   randomizeSeed: 0
+  splitSize: 4
   roomCount: 0
   showRooms: 1
   finishedRoomCount: 0
+  doorCount: 0
 --- !u!4 &645204197
 Transform:
   m_ObjectHideFlags: 0

@@ -21,10 +21,11 @@ public class RoomGenerator : MonoBehaviour
     //RNJesus
     public int seed = 00000;
     public bool randomizeSeed;
-    private int splitNum, splitMod, sizeInc, sizeMod, sizeNum;
+    public int splitSize;
     private bool stuck = false;
+    private System.Random random;
 
-    //General Array stuff
+	//General Array stuff
 	private int arraySize = 50;
 
 	//Room generation array
@@ -36,29 +37,27 @@ public class RoomGenerator : MonoBehaviour
     private RectInt[] finishedRooms;
     public int finishedRoomCount = 0;
 
+    //Doors
+    private RectInt[] doors;
+    public int doorCount = 0;
+
 
 
 	private void Start()
     {
-        roomCount = 1; finishedRoomCount = 0;
+        roomCount = 1; finishedRoomCount = 0; doorCount = 0;
         rooms = new RectInt[arraySize];
         finishedRooms = new RectInt[arraySize];
+        doors = new RectInt[arraySize];
 
 
         rooms[0] = new(x, y, initialWidth, initialHeight);
 
-
+        random = new(seed);
         if (randomizeSeed){
-            seed = Random.Range(10000,99999);
+            seed = (int)DateTime.Now.Ticks;
+            random = new(seed);
         }
-        
-        sizeNum = seed / 10000 % 10;
-        sizeMod = seed / 1000 % 10; sizeMod++; if (sizeMod > minWidth) sizeMod = minWidth; if (sizeMod > minHeight) sizeMod = minHeight;
-        sizeInc = seed / 100 % 10; if (sizeInc == sizeMod || sizeInc == 0) sizeInc++;
-
-        splitNum = seed / 10 % 10;
-        splitMod = seed % 10; if (splitMod <= 2) splitMod = 3;
-
 
         StartCoroutine(Split(0));
     }
@@ -89,39 +88,15 @@ public class RoomGenerator : MonoBehaviour
             //Doing Splits
             //
 
-    private int GetSplitDifference()
-    {
-        //if (sizeNum % sizeMod == 0 || sizeNum % sizeMod == 1) sizeMod++;
-        //if (sizeMod > 9) sizeMod = 3;
-
-        int result = (sizeNum % sizeMod);
-
-        sizeNum += sizeInc;
-        sizeNum -= (sizeNum / sizeMod) * sizeMod;
-
-
-		Debug.Log(result);
-
-		return result;
-    }
-
-    private bool ChooseSplit()
-    {
-        int result = splitNum % splitMod / 2 % 2;
-		splitNum++;
-
-		if (result == 0) return false;
-        else return true;
-    }
     private void VerticalSplit(int roomIndex)
     {
-        int splitDifference = GetSplitDifference();
+        int splitDifference = random.Next(-splitSize,splitSize);
 
 		//check that rooms aren't too small
 		if ((rooms[roomIndex].width / 2 + splitDifference) * rooms[roomIndex].height < minArea) return;
 		if ((rooms[roomIndex].width / 2 - splitDifference) * rooms[roomIndex].height < minArea) return;
-        if (rooms[roomIndex].width / 2 + splitDifference + 2 < minWidth) return;
-        if (rooms[roomIndex].width / 2 - splitDifference - 2 < minWidth) return;
+        if (rooms[roomIndex].width / 2 + splitDifference< minWidth) return;
+        if (rooms[roomIndex].width / 2 - splitDifference< minWidth) return;
 
 		stuck = false;
 
@@ -140,16 +115,17 @@ public class RoomGenerator : MonoBehaviour
 
         RemoveRoomAtIndex(roomIndex, rooms);
     }
+
     private void HorizontalSplit(int roomIndex)
 	{
-		int splitDifference = GetSplitDifference();
+		int splitDifference = random.Next(-splitSize, splitSize);
         
 
         //check that rooms aren't too small
 		if (rooms[roomIndex].width * (rooms[roomIndex].height / 2 + splitDifference) < minArea) return;
         if (rooms[roomIndex].width * (rooms[roomIndex].height / 2 - splitDifference) < minArea) return;
-        if (rooms[roomIndex].height / 2 + splitDifference + 2 < minHeight) return;
-		if (rooms[roomIndex].height / 2 - splitDifference - 2 < minHeight) return;
+        if (rooms[roomIndex].height / 2 + splitDifference< minHeight) return;
+		if (rooms[roomIndex].height / 2 - splitDifference< minHeight) return;
 
 
 		stuck = false;
@@ -170,10 +146,10 @@ public class RoomGenerator : MonoBehaviour
 	IEnumerator Split(int roomIndex = 0)
 	{
 
-		Debug.Log(roomIndex + " " + roomCount);
+		//Debug.Log(roomIndex + " " + roomCount);
 
-		//make sure it doesn't go out of bounds
-		if (roomIndex >= roomCount)
+        //make sure it doesn't go out of bounds
+        if (roomIndex >= roomCount)
 		{
             //if (stuck) SetRoomAside(0);
 			roomIndex = 0; 
@@ -185,7 +161,7 @@ public class RoomGenerator : MonoBehaviour
         {
             SetRoomAside(roomIndex);
         }
-		else if (ChooseSplit())
+		else if (random.Next(0,2) == 1)
 		{
 			VerticalSplit(roomIndex);
 		}
@@ -194,7 +170,7 @@ public class RoomGenerator : MonoBehaviour
 			HorizontalSplit(roomIndex);
 		}
 
-        if (stuck)
+        if (stuck && roomCount != 0)
         {
             SetRoomAside(roomIndex);
         }
@@ -202,48 +178,49 @@ public class RoomGenerator : MonoBehaviour
 		yield return new WaitForSeconds(speed);
 
         if (roomCount != 0) StartCoroutine(Split(roomIndex + 1));
-        else Debug.Log("Splitting done");
-
+        else
+        {
+            Debug.Log("Splitting done");
+            StartCoroutine(MakeDoor());
+        }
 
 	}
 
-
-	        //
-	        //Array Finangling
-	        //
-
 	private RectInt SpawnRoom(int x, int y, int width, int height)
-    {
-        //Verify room size, redundant
-        //if (width * height <= minArea) return new RectInt(); 
-        //if (height < minHeight) return new RectInt();
-        //if (width < minWidth) return new RectInt();
+	{
+		//Verify room size, redundant
+		//if (width * height <= minArea) return new RectInt(); 
+		//if (height < minHeight) return new RectInt();
+		//if (width < minWidth) return new RectInt();
 
-        //Debug.Log(width *  height);
+		//Debug.Log(width *  height);
 
-        RectInt newRoom = new(x, y, width, height);
+		RectInt newRoom = new(x, y, width, height);
 
-        
+
 
 
 		rooms[roomCount] = newRoom;
 		roomCount++;
 
-        if (roomCount == arraySize){
-            IncreaseArraySize();
-        }
+		if (roomCount == arraySize)
+		{
+			IncreaseArraySize();
+		}
 
-        return newRoom;
-    }
+		return newRoom;
+	}
 
-    private void RemoveRoomAtIndex(int indexToRemove, RectInt[] array)
-    {
-        //Debug.Log(indexToRemove);
-        //Check if the index is valid
-        if (indexToRemove < 0 || indexToRemove >= roomCount)
-        {
-            throw new IndexOutOfRangeException("Index out of bounds");
-        }
+	private void RemoveRoomAtIndex(int indexToRemove, RectInt[] array)
+	{
+		//Debug.Log(indexToRemove);
+		//Check if the index is valid
+		if (indexToRemove < 0 || indexToRemove >= roomCount)
+		{
+			//throw new IndexOutOfRangeException("Index out of bounds");
+			Debug.Log("Index out of bounds");
+			return;
+		}
 
 		//Show the rool being deleted
 		AlgorithmsUtils.DebugRectInt(array[indexToRemove], Color.red, 1f);
@@ -252,16 +229,22 @@ public class RoomGenerator : MonoBehaviour
 		//Shift all elements to the left starting from the index to remove to the end of the array and decrement the count
 
 		for (int i = indexToRemove + 1; i < roomCount; i++)
-        {
-            array[i - 1] = array[i];
-        }
-        array[roomCount - 1] = new RectInt();
+		{
+			array[i - 1] = array[i];
+		}
+		array[roomCount - 1] = new RectInt();
 
-        roomCount--;
+		roomCount--;
 
-    }
+	}
 
-    private void IncreaseArraySize()
+		//
+		//Array Finangling
+		//
+
+
+
+	private void IncreaseArraySize()
     {
         RectInt[] tempArray;
         arraySize *= 2;
@@ -284,12 +267,20 @@ public class RoomGenerator : MonoBehaviour
 			finishedRooms[i] = tempArray[i];
 		}
 
+        //doors
+        tempArray = doors;
+        doors = new RectInt[arraySize];
+
+        for (int i = 0;i < tempArray.Length; i++)
+        {
+            doors[i] = tempArray[i];
+        }
 	}
 
 
-            //
-            //setting rooms[i] into finishedRooms[]
-            //
+		//
+		//setting rooms[i] into finishedRooms[]
+		//
 
     private void SetRoomAside(int roomIndex)
 	{
@@ -308,5 +299,36 @@ public class RoomGenerator : MonoBehaviour
 
 
 
+	}
+
+		//
+		//generating doors
+		//
+
+    IEnumerator MakeDoors(int roomIndex = 0)
+    {
+        for (int i = roomIndex + 1; i < finishedRoomCount; i++)
+        {
+			RectInt door = SpawnDoor(roomIndex, i);
+			if (door != new RectInt()) 
+			{
+				doors[doorCount] = door;
+				doorCount++;
+			}
+        }
+
+
+        yield return new WaitForSeconds(speed);
+    
+        
+        
+    }
+
+	private RectInt SpawnDoor(int checkedRoom, int comparedRoom)
+	{
+		
+	//finish this
+
+		return new RectInt();
 	}
 }
