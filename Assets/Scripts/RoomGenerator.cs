@@ -73,10 +73,14 @@ public class RoomGenerator : MonoBehaviour
 			{
 				AlgorithmsUtils.DebugRectInt(rooms[i], Color.blue, 0.01f);
 			}
-            for (int i = 0;i < finishedRoomCount; i++)
+            for (int i = 0; i < finishedRoomCount; i++)
             {
                 AlgorithmsUtils.DebugRectInt(finishedRooms[i], Color.green, 0.01f);
             }
+			for (int i = 0; i < doorCount; i++)
+			{
+				AlgorithmsUtils.DebugRectInt(doors[i], Color.yellow, 0.04f);
+			}
 		}
 
 
@@ -181,7 +185,7 @@ public class RoomGenerator : MonoBehaviour
         else
         {
             Debug.Log("Splitting done");
-            StartCoroutine(MakeDoor());
+            StartCoroutine(MakeDoors());
         }
 
 	}
@@ -305,30 +309,64 @@ public class RoomGenerator : MonoBehaviour
 		//generating doors
 		//
 
+
+						//
+						//There is a problem with checking if a door is already there. Current seed contains it
+						//
     IEnumerator MakeDoors(int roomIndex = 0)
     {
         for (int i = roomIndex + 1; i < finishedRoomCount; i++)
         {
 			RectInt door = SpawnDoor(roomIndex, i);
-			if (door != new RectInt()) 
-			{
-				doors[doorCount] = door;
-				doorCount++;
+			if (door != new RectInt())
+            {
+                if (!CheckDoubleDoor(door))
+                {
+					if (doorCount == arraySize)
+					{
+						IncreaseArraySize();
+					}
+                    doors[doorCount] = door;
+                    doorCount++;
+                }
 			}
         }
 
 
         yield return new WaitForSeconds(speed);
-    
-        
+		if (roomIndex < finishedRoomCount - 1) StartCoroutine(MakeDoors(roomIndex + 1));
+		else
+		{
+			Debug.Log("Doors Done");
+		}
         
     }
 
 	private RectInt SpawnDoor(int checkedRoom, int comparedRoom)
 	{
-		
-	//finish this
+		RectInt door = AlgorithmsUtils.Intersect(finishedRooms[checkedRoom], finishedRooms[comparedRoom]);
+		if (door == new RectInt()) return door;
+		if (door.width < 3 && door.height < 3) return new RectInt();
 
-		return new RectInt();
+
+		if (door.height == 1)
+		{
+			door = new(random.Next(door.x + 1,door.x + door.width - 1), door.y, 1, 1);
+		}
+		else
+		{
+			door = new(door.x, random.Next(door.y, door.y + door.height - 1), 1, 1);
+		}
+
+		return door;
+	}
+
+	private bool CheckDoubleDoor(RectInt door)
+	{
+		for (int i = 0; i < doorCount; i++)
+		{
+			if (AlgorithmsUtils.Intersects(door, doors[i])) return true;
+		}
+		return false;
 	}
 }
