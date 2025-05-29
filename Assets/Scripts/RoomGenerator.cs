@@ -309,10 +309,6 @@ public class RoomGenerator : MonoBehaviour
 		//generating doors
 		//
 
-
-						//
-						//There is a problem with checking if a door is already there. Current seed contains it
-						//
     IEnumerator MakeDoors(int roomIndex = 0)
     {
         for (int i = roomIndex + 1; i < finishedRoomCount; i++)
@@ -355,7 +351,7 @@ public class RoomGenerator : MonoBehaviour
 		}
 		else
 		{
-			door = new(door.x, random.Next(door.y, door.y + door.height - 1), 1, 1);
+			door = new(door.x, random.Next(door.y + 1, door.y + door.height - 1), 1, 1);
 		}
 
 		return door;
