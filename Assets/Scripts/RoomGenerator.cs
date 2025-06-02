@@ -316,15 +316,12 @@ public class RoomGenerator : MonoBehaviour
 			RectInt door = SpawnDoor(roomIndex, i);
 			if (door != new RectInt())
             {
-                if (!CheckDoubleDoor(door))
-                {
-					if (doorCount == arraySize)
-					{
-						IncreaseArraySize();
-					}
-                    doors[doorCount] = door;
-                    doorCount++;
-                }
+				if (doorCount == arraySize)
+				{
+					IncreaseArraySize();
+				}
+                doors[doorCount] = door;
+                doorCount++;
 			}
         }
 
@@ -357,12 +354,4 @@ public class RoomGenerator : MonoBehaviour
 		return door;
 	}
 
-	private bool CheckDoubleDoor(RectInt door)
-	{
-		for (int i = 0; i < doorCount; i++)
-		{
-			if (AlgorithmsUtils.Intersects(door, doors[i])) return true;
-		}
-		return false;
-	}
 }
