@@ -408,13 +408,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   x: 0
   y: 0
-  initialHeight: 50
-  initialWidth: 50
+  initialHeight: 40
+  initialWidth: 40
   minArea: 30
   minWidth: 5
   minHeight: 5
   speed: 0
-  seed: 1946086883
+  seed: 1201585535
   randomizeSeed: 0
   splitSize: 4
   roomCount: 0

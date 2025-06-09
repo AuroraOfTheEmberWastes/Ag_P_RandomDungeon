@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -23,6 +24,7 @@ public class RoomGenerator : MonoBehaviour
     public bool randomizeSeed;
     public int splitSize;
     private bool stuck = false;
+	private bool stuckAgain = false;
     private System.Random random;
 
 	//General Array stuff
@@ -41,6 +43,9 @@ public class RoomGenerator : MonoBehaviour
     private RectInt[] doors;
     public int doorCount = 0;
 
+	//Graph
+	private Dictionary<Vector3, (int locationID, Vector3[] neighbors)> graph;
+	private Vector3 graphSearchStart = new Vector3();
 
 
 	private void Start()
@@ -49,6 +54,7 @@ public class RoomGenerator : MonoBehaviour
         rooms = new RectInt[arraySize];
         finishedRooms = new RectInt[arraySize];
         doors = new RectInt[arraySize];
+		graph = new Dictionary<Vector3, (int locationID, Vector3[] neighbors)> { };
 
 
         rooms[0] = new(x, y, initialWidth, initialHeight);
@@ -82,15 +88,25 @@ public class RoomGenerator : MonoBehaviour
 				AlgorithmsUtils.DebugRectInt(doors[i], Color.yellow, 0.04f);
 			}
 		}
-
-
-
     }
 
+    private void OnDrawGizmos()
+    {
+		Gizmos.color = Color.white;
+		if (graph != null)
+        {
+            foreach (Vector3 key in graph.Keys)
+            {
+                Gizmos.DrawWireSphere(key, 0.5f);
+            }
 
-            //
-            //Doing Splits
-            //
+        }
+	}
+
+
+    //
+    //Doing Splits
+    //
 
     private void VerticalSplit(int roomIndex)
     {
@@ -156,8 +172,10 @@ public class RoomGenerator : MonoBehaviour
         if (roomIndex >= roomCount)
 		{
             //if (stuck) SetRoomAside(0);
-			roomIndex = 0; 
-            stuck = true;
+			roomIndex = 0;
+			if (stuck) stuckAgain = true;
+			stuck = true;
+
 		}
 		//Debug.Log(stuck);
 
@@ -174,8 +192,9 @@ public class RoomGenerator : MonoBehaviour
 			HorizontalSplit(roomIndex);
 		}
 
-        if (stuck && roomCount != 0)
+        if (stuckAgain && roomCount != 0)
         {
+			stuckAgain = false;
             SetRoomAside(roomIndex);
         }
 
@@ -221,9 +240,10 @@ public class RoomGenerator : MonoBehaviour
 		//Check if the index is valid
 		if (indexToRemove < 0 || indexToRemove >= roomCount)
 		{
-			//throw new IndexOutOfRangeException("Index out of bounds");
-			Debug.Log("Index out of bounds");
-			return;
+			Debug.Log(indexToRemove);
+			throw new IndexOutOfRangeException("Index out of bounds");
+			//Debug.Log("Index out of bounds");
+			//return;
 		}
 
 		//Show the rool being deleted
@@ -295,8 +315,19 @@ public class RoomGenerator : MonoBehaviour
 			IncreaseArraySize();
 		}
 
-
+		//room
 		finishedRooms[finishedRoomCount] = new RectInt(rooms[roomIndex].x, rooms[roomIndex].y, rooms[roomIndex].width, rooms[roomIndex].height);
+
+		//graph
+		Vector3 center = new Vector3(rooms[roomIndex].x + rooms[roomIndex].width / 2 + 0.5f, 0, rooms[roomIndex].y + rooms[roomIndex].height / 2 + 0.5f);
+		graph.Add(center, (finishedRoomCount, new Vector3[20]));
+        
+
+        if (graphSearchStart == new Vector3()) graphSearchStart = center;
+
+
+		//Bach to regularly scheduled construction
+
         finishedRoomCount++;
 
         RemoveRoomAtIndex(roomIndex, rooms);
@@ -321,17 +352,18 @@ public class RoomGenerator : MonoBehaviour
 					IncreaseArraySize();
 				}
                 doors[doorCount] = door;
-                doorCount++;
-			}
-        }
 
+                //graph
+                AddDoorToGraph(door, roomIndex, i);
+
+
+                doorCount++;
+            }
+        }
 
         yield return new WaitForSeconds(speed);
 		if (roomIndex < finishedRoomCount - 1) StartCoroutine(MakeDoors(roomIndex + 1));
-		else
-		{
-			Debug.Log("Doors Done");
-		}
+		else Debug.Log("Doors Done");
         
     }
 
@@ -351,7 +383,64 @@ public class RoomGenerator : MonoBehaviour
 			door = new(door.x, random.Next(door.y + 1, door.y + door.height - 1), 1, 1);
 		}
 
+
 		return door;
 	}
+
+	private void AddDoorToGraph(RectInt door, int room1, int room2)
+	{
+        Vector3 center = new Vector3(door.x + door.width / 2 + 0.5f, 0, door.y + door.height / 2 + 0.5f);
+        Vector3 room1Center = new Vector3(finishedRooms[room1].x + finishedRooms[room1].width / 2 + 0.5f, 0, finishedRooms[room1].y + finishedRooms[room1].height / 2 + 0.5f);
+        Vector3 room2Center = new Vector3(finishedRooms[room2].x + finishedRooms[room2].width / 2 + 0.5f, 0, finishedRooms[room2].y + finishedRooms[room2].height / 2 + 0.5f);
+
+        //graph.Remove;
+        //graph.ContainsKey;
+
+
+        graph.Add(center, (doorCount, new Vector3[] { room1Center, room2Center }));
+
+        if (graph.ContainsKey(room1Center))
+		{
+			int id = graph[room1Center].locationID;
+			
+			Vector3[] neighbors = new Vector3[20];
+			neighbors = graph[room1Center].neighbors;
+
+			for (int i = 0; i < 20; i++)
+			{
+				if (neighbors[i] == new Vector3())
+				{
+					neighbors[i] = center;
+					break;
+				}
+			}
+			graph.Remove(room1Center);
+			graph.Add(room1Center, (room1, neighbors));
+
+        }
+		else graph.Add(room1Center, (room1, new Vector3[] { center }));
+
+        if (graph.ContainsKey(room2Center))
+		{
+			int id = graph[room2Center].locationID;
+
+            Vector3[] neighbors = new Vector3[graph[room2Center].neighbors.Length + 1];
+            neighbors = graph[room2Center].neighbors;
+
+            for (int i = 0; i < 20; i++)
+            {
+                if (neighbors[i] == new Vector3())
+                {
+                    neighbors[i] = center;
+                    break;
+                }
+            }
+            graph.Remove(room2Center);
+			graph.Add(room2Center, (room1, neighbors));
+		}
+		else graph.Add(room2Center, (room2, new Vector3[] { center }));
+        
+
+    }
 
 }
