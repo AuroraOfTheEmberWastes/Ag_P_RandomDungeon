@@ -44,7 +44,7 @@ public class RoomGenerator : MonoBehaviour
     public int doorCount = 0;
 
 	//Graph
-	private Dictionary<Vector3, (int locationID, Vector3[] neighbors)> graph;
+	private Dictionary<Vector3, (int locationID, Vector3[] neighbors)> graph; //when reading, will need to break loop when Vector3 = (0,0,0)
 	private Vector3 graphSearchStart = new Vector3();
 
 
@@ -95,9 +95,14 @@ public class RoomGenerator : MonoBehaviour
 		Gizmos.color = Color.white;
 		if (graph != null)
         {
-            foreach (Vector3 key in graph.Keys)
+			foreach (Vector3 key in graph.Keys)
             {
                 Gizmos.DrawWireSphere(key, 0.5f);
+				foreach (Vector3 neighbor in graph[key].neighbors) 
+				{
+					if (neighbor == new Vector3(0, 0, 0)) break;
+					Gizmos.DrawLine(key,neighbor);
+				}
             }
 
         }
@@ -439,7 +444,8 @@ public class RoomGenerator : MonoBehaviour
 			graph.Add(room2Center, (room1, neighbors));
 		}
 		else graph.Add(room2Center, (room2, new Vector3[] { center }));
-        
+
+		Debug.Log(graph[center].neighbors);
 
     }
 
