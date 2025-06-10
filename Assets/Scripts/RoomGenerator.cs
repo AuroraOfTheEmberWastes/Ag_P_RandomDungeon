@@ -45,16 +45,21 @@ public class RoomGenerator : MonoBehaviour
 
 	//Graph
 	private Dictionary<Vector3, (int locationID, Vector3[] neighbors)> graph; //when reading, will need to break loop when Vector3 = (0,0,0)
+
+	//Bfs
+	private Vector3[] checkedLocations;
 	private Vector3 graphSearchStart = new Vector3();
+	public int checkedLocationsCount = 0;
 
 
 	private void Start()
     {
-        roomCount = 1; finishedRoomCount = 0; doorCount = 0;
+        roomCount = 1; finishedRoomCount = 0; doorCount = 0; checkedLocationsCount = 0;
         rooms = new RectInt[arraySize];
         finishedRooms = new RectInt[arraySize];
         doors = new RectInt[arraySize];
 		graph = new Dictionary<Vector3, (int locationID, Vector3[] neighbors)> { };
+		checkedLocations = new Vector3[arraySize];
 
 
         rooms[0] = new(x, y, initialWidth, initialHeight);
@@ -304,6 +309,17 @@ public class RoomGenerator : MonoBehaviour
         {
             doors[i] = tempArray[i];
         }
+
+		//locations general
+		Vector3[] differentTempArray = new Vector3[arraySize];
+		differentTempArray = checkedLocations;
+		checkedLocations = new Vector3[arraySize];
+
+		for (int i = 0;i < tempArray.Length; i++)
+		{
+			checkedLocations[i] = differentTempArray[i];
+		}
+
 	}
 
 
@@ -368,7 +384,11 @@ public class RoomGenerator : MonoBehaviour
 
         yield return new WaitForSeconds(speed);
 		if (roomIndex < finishedRoomCount - 1) StartCoroutine(MakeDoors(roomIndex + 1));
-		else Debug.Log("Doors Done");
+		else
+		{
+			Debug.Log("Doors Done");
+			StartBFS();
+		} 
         
     }
 
@@ -445,8 +465,38 @@ public class RoomGenerator : MonoBehaviour
 		}
 		else graph.Add(room2Center, (room2, new Vector3[] { center }));
 
-		Debug.Log(graph[center].neighbors);
+		//Debug.Log(graph[center].neighbors);
 
     }
+
+		//
+		//checking connectivity
+		//
+
+	private void StartBFS()
+	{
+		checkedLocations[checkedLocationsCount] = graphSearchStart;
+		checkedLocationsCount++;
+		CheckConnectivity(graphSearchStart);
+		if (checkedLocationsCount != finishedRoomCount + doorCount) Debug.Log("All rooms not connected");
+		else Debug.Log("everything connected");
+	}
+
+	private void CheckConnectivity(Vector3 location)
+	{
+		foreach (var neighbor in graph[location].neighbors) 
+		{
+			if (checkedLocations.Contains(neighbor)) continue;
+
+			if (checkedLocationsCount == arraySize)
+			{
+				IncreaseArraySize();
+			}
+			checkedLocations[checkedLocationsCount] = neighbor;
+			checkedLocationsCount++;
+
+			CheckConnectivity(neighbor);
+		}
+	}
 
 }
