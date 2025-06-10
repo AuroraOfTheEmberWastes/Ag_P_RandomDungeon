@@ -424,6 +424,7 @@ MonoBehaviour:
   checkedLocationsCount: 0
   floorPrefab: {fileID: 8761798563571838312, guid: 9b0ffee6bd19a8342af9d21e21b0edfc, type: 3}
   wallPrefab: {fileID: 4228295887037605732, guid: 3af7a7e2204547c49ad744d81ad935af, type: 3}
+  doorPrefab: {fileID: 7317632411411391200, guid: 9b690d90c5c5d334b926c6b222a7b785, type: 3}
 --- !u!4 &645204197
 Transform:
   m_ObjectHideFlags: 0

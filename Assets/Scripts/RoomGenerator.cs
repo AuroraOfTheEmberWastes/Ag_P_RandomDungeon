@@ -5,6 +5,7 @@ using System.Linq;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
+using static UnityEditor.FilePathAttribute;
 using Random = UnityEngine.Random;
 
 public class RoomGenerator : MonoBehaviour
@@ -487,10 +488,22 @@ public class RoomGenerator : MonoBehaviour
 		checkedLocations[checkedLocationsCount] = graphSearchStart;
 		checkedLocationsCount++;
 		CheckConnectivity(graphSearchStart);
+
 		if (checkedLocationsCount != finishedRoomCount + doorCount) Debug.Log("All rooms not connected");
 		else
 		{
 			Debug.Log("Everything connected");
+
+			for (int i = 0; i < initialWidth; i++)
+			{
+				tilemap[i, 0] = 1;
+				tilemap[i, initialWidth - 1] = 1;
+				}
+			for (int j = 0; j < initialWidth; j++)
+			{
+				tilemap[0, j] = 1;
+				tilemap[initialHeight - 1, j] = 1;
+			}
 			StartCoroutine(SpawnDungeon(0, 0));
 		}
 	}
@@ -507,14 +520,15 @@ public class RoomGenerator : MonoBehaviour
 				IncreaseArraySize();
 			}
 
-			if (graph[location].isDoor) LocationToTilemap(doors[graph[location].locationID]);
-			else LocationToTilemap(finishedRooms[graph[location].locationID]);
-
 			checkedLocations[checkedLocationsCount] = neighbor;
 			checkedLocationsCount++;
 
+
+
 			CheckConnectivity(neighbor);
 		}
+		if (graph[location].isDoor) LocationToTilemap(doors[graph[location].locationID]);
+		else LocationToTilemap(finishedRooms[graph[location].locationID]);
 	}
 
 		//
@@ -523,6 +537,9 @@ public class RoomGenerator : MonoBehaviour
 
 	private void LocationToTilemap(RectInt location)
 	{
+
+		
+
 		if (location.width == 1 && location.height == 1)
 		{
 			tilemap[location.x, location.y] = -1;
@@ -540,7 +557,7 @@ public class RoomGenerator : MonoBehaviour
 				}
 			}
 
-			for (int i = location.y + 1;i < location.y + location.height - 1;i++)
+			for (int i = location.y + 1;i < location.y + location.height;i++)
 			{
 				if (tilemap[location.x, i] == 0)
 				{
@@ -566,7 +583,6 @@ public class RoomGenerator : MonoBehaviour
 		{
 			Instantiate(floorPrefab, new Vector3(i, 0, j), Quaternion.identity);
 		}
-
 
 
 
