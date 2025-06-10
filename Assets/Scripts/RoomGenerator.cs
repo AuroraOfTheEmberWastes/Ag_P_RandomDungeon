@@ -44,12 +44,18 @@ public class RoomGenerator : MonoBehaviour
     public int doorCount = 0;
 
 	//Graph
-	private Dictionary<Vector3, (int locationID, Vector3[] neighbors)> graph; //when reading, will need to break loop when Vector3 = (0,0,0)
+	private Dictionary<Vector3, (int locationID, Vector3[] neighbors, bool isDoor)> graph; //when reading, will need to break loop when Vector3 = (0,0,0)
 
-	//Bfs
+	//DFS
 	private Vector3[] checkedLocations;
 	private Vector3 graphSearchStart = new Vector3();
 	public int checkedLocationsCount = 0;
+
+	//spawning
+	private int[,] tilemap;
+	public GameObject floorPrefab;
+	public GameObject wallPrefab;
+	public GameObject doorPrefab;
 
 
 	private void Start()
@@ -58,8 +64,9 @@ public class RoomGenerator : MonoBehaviour
         rooms = new RectInt[arraySize];
         finishedRooms = new RectInt[arraySize];
         doors = new RectInt[arraySize];
-		graph = new Dictionary<Vector3, (int locationID, Vector3[] neighbors)> { };
+		graph = new Dictionary<Vector3, (int locationID, Vector3[] neighbors, bool isDoor)> { };
 		checkedLocations = new Vector3[arraySize];
+		tilemap = new int[initialHeight, initialWidth];
 
 
         rooms[0] = new(x, y, initialWidth, initialHeight);
@@ -102,7 +109,9 @@ public class RoomGenerator : MonoBehaviour
         {
 			foreach (Vector3 key in graph.Keys)
             {
+				if (graph[key].isDoor) Gizmos.color = Color.yellow;
                 Gizmos.DrawWireSphere(key, 0.5f);
+				Gizmos.color = Color.white;
 				foreach (Vector3 neighbor in graph[key].neighbors) 
 				{
 					if (neighbor == new Vector3(0, 0, 0)) break;
@@ -341,7 +350,7 @@ public class RoomGenerator : MonoBehaviour
 
 		//graph
 		Vector3 center = new Vector3(rooms[roomIndex].x + rooms[roomIndex].width / 2 + 0.5f, 0, rooms[roomIndex].y + rooms[roomIndex].height / 2 + 0.5f);
-		graph.Add(center, (finishedRoomCount, new Vector3[20]));
+		graph.Add(center, (finishedRoomCount, new Vector3[20], false));
         
 
         if (graphSearchStart == new Vector3()) graphSearchStart = center;
@@ -387,7 +396,7 @@ public class RoomGenerator : MonoBehaviour
 		else
 		{
 			Debug.Log("Doors Done");
-			StartBFS();
+			StartDFS();
 		} 
         
     }
@@ -422,7 +431,7 @@ public class RoomGenerator : MonoBehaviour
         //graph.ContainsKey;
 
 
-        graph.Add(center, (doorCount, new Vector3[] { room1Center, room2Center }));
+        graph.Add(center, (doorCount, new Vector3[] { room1Center, room2Center }, true));
 
         if (graph.ContainsKey(room1Center))
 		{
@@ -440,10 +449,10 @@ public class RoomGenerator : MonoBehaviour
 				}
 			}
 			graph.Remove(room1Center);
-			graph.Add(room1Center, (room1, neighbors));
+			graph.Add(room1Center, (room1, neighbors, false));
 
         }
-		else graph.Add(room1Center, (room1, new Vector3[] { center }));
+		else graph.Add(room1Center, (room1, new Vector3[] { center }, false));
 
         if (graph.ContainsKey(room2Center))
 		{
@@ -461,9 +470,9 @@ public class RoomGenerator : MonoBehaviour
                 }
             }
             graph.Remove(room2Center);
-			graph.Add(room2Center, (room1, neighbors));
+			graph.Add(room2Center, (room1, neighbors, false));
 		}
-		else graph.Add(room2Center, (room2, new Vector3[] { center }));
+		else graph.Add(room2Center, (room2, new Vector3[] { center }, false));
 
 		//Debug.Log(graph[center].neighbors);
 
@@ -473,25 +482,34 @@ public class RoomGenerator : MonoBehaviour
 		//checking connectivity
 		//
 
-	private void StartBFS()
+	private void StartDFS()
 	{
 		checkedLocations[checkedLocationsCount] = graphSearchStart;
 		checkedLocationsCount++;
 		CheckConnectivity(graphSearchStart);
 		if (checkedLocationsCount != finishedRoomCount + doorCount) Debug.Log("All rooms not connected");
-		else Debug.Log("everything connected");
+		else
+		{
+			Debug.Log("Everything connected");
+			StartCoroutine(SpawnDungeon(0, 0));
+		}
 	}
 
 	private void CheckConnectivity(Vector3 location)
 	{
-		foreach (var neighbor in graph[location].neighbors) 
+		foreach (var neighbor in graph[location].neighbors)
 		{
+			if (neighbor == new Vector3(0, 0, 0)) break;
 			if (checkedLocations.Contains(neighbor)) continue;
 
 			if (checkedLocationsCount == arraySize)
 			{
 				IncreaseArraySize();
 			}
+
+			if (graph[location].isDoor) LocationToTilemap(doors[graph[location].locationID]);
+			else LocationToTilemap(finishedRooms[graph[location].locationID]);
+
 			checkedLocations[checkedLocationsCount] = neighbor;
 			checkedLocationsCount++;
 
@@ -499,4 +517,71 @@ public class RoomGenerator : MonoBehaviour
 		}
 	}
 
+		//
+		//Tilemap + dungeon spawning
+		//
+
+	private void LocationToTilemap(RectInt location)
+	{
+		if (location.width == 1 && location.height == 1)
+		{
+			tilemap[location.x, location.y] = -1;
+		}else
+		{
+			for (int i = location.x;i < location.x + location.width; i++)
+			{
+				if (tilemap[i, location.y] == 0)
+				{
+					tilemap[i,location.y] = 1;
+				}
+				if (tilemap[i, location.y + location.height - 1] == 0)
+				{
+					tilemap[i, location.y + location.height - 1] = 1;
+				}
+			}
+
+			for (int i = location.y + 1;i < location.y + location.height - 1;i++)
+			{
+				if (tilemap[location.x, i] == 0)
+				{
+					tilemap[location.x, i] = 1;
+				}
+				if (tilemap[location.x + location.width - 1, i] == 0)
+				{
+					tilemap[location.x + location.width - 1, i] = 1;
+				}
+			}
+		}
+	}
+
+	IEnumerator SpawnDungeon(int i, int j)
+	{
+		if (tilemap[i, j] == 1)
+		{
+			Instantiate(wallPrefab, new Vector3(i, 0, j), Quaternion.identity);
+		} else if (tilemap[i,j] == -1)
+		{
+			Instantiate(doorPrefab, new Vector3(i ,0 ,j), Quaternion.identity); 
+		}else
+		{
+			Instantiate(floorPrefab, new Vector3(i, 0, j), Quaternion.identity);
+		}
+
+
+
+
+		yield return new WaitForSeconds(speed);
+		if (j == initialHeight - 1 && i == initialWidth - 1) Debug.Log("Spawning Complete");
+		else if (i == initialWidth - 1)
+		{
+			StartCoroutine(SpawnDungeon(0, j + 1));
+		}
+		else
+		{
+			StartCoroutine(SpawnDungeon(i + 1, j));
+		}
+	}
+
+
+		
 }
