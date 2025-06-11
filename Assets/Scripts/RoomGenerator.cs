@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.AI.Navigation;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -52,11 +53,15 @@ public class RoomGenerator : MonoBehaviour
 	private Vector3 graphSearchStart = new Vector3();
 	public int checkedLocationsCount = 0;
 
-	//spawning
+	//Spawning
 	private int[,] tilemap;
 	public GameObject floorPrefab;
 	public GameObject wallPrefab;
 	public GameObject doorPrefab;
+
+	//Nav Mesh
+	public NavMeshSurface navMeshSurface;
+	public GameObject Player;
 
 
 	private void Start()
@@ -504,7 +509,9 @@ public class RoomGenerator : MonoBehaviour
 				tilemap[0, j] = 1;
 				tilemap[initialHeight - 1, j] = 1;
 			}
+
 			StartCoroutine(SpawnDungeon(0, 0));
+
 		}
 	}
 
@@ -587,7 +594,11 @@ public class RoomGenerator : MonoBehaviour
 
 
 		yield return new WaitForSeconds(speed);
-		if (j == initialHeight - 1 && i == initialWidth - 1) Debug.Log("Spawning Complete");
+		if (j == initialHeight - 1 && i == initialWidth - 1)
+		{
+			Debug.Log("Spawning Complete");
+			BakeNavMesh();
+		} 
 		else if (i == initialWidth - 1)
 		{
 			StartCoroutine(SpawnDungeon(0, j + 1));
@@ -598,6 +609,15 @@ public class RoomGenerator : MonoBehaviour
 		}
 	}
 
-
+		//
+		//bake nav mesh
+		//
 		
+
+	public void BakeNavMesh()
+	{
+		navMeshSurface.BuildNavMesh();
+		Debug.Log("Nav Mesh Baked");
+		Player.SetActive(true);
+	}
 }
